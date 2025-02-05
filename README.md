@@ -1,195 +1,99 @@
+# Laravel OAuth2 Client
 
-## Install Laravel
+This Laravel application demonstrates OAuth2 client implementation for authentication against a custom OAuth2 server. It serves as a reference implementation using [Laravel OAuth2 Server](https://github.com/devnodesin/laravel-oauth2-server) as the authorization server.
+
+While Laravel Socialite handles OAuth2 authentication with third-party providers (like Google, Facebook), this project shows how to:
+
+- Implement custom OAuth2 client authentication
+- Connect to a self-hosted OAuth2 server
+- Extend Laravel's authentication system
+- Handle OAuth2 authorization flow
 
 ```bash
-composer global require laravel/installer
-laravel new client
+git clone https://github.com/devnodesin/laravel-oauth2-client client
 cd client
 ```
 
-OR
+## Install Dependencies
+
+Install PHP dependencies and npm for frontend assets.
 
 ```bash
-mkdir client
-composer create-project laravel/laravel .
-```
-
-### Build npm
-
-```bash
+composer install
 npm install
 npm run build
 ```
 
-### Laravel's local development server (optional)
+## Copy the example .env file
 
 ```bash
-composer run dev
+cp .env.example .env
 ```
 
-Once you have started the development server, your application will be accessible in your web browser at <http://localhost:8000>.
+Configure your application by setting these variables in .env:
 
-## Laravel Confirugration
+```env
+APP_URL=http://client.test
 
-Lets configure the laravel App, with below details
+## OAuth2 Client Credentials (OAuth2 Redirect URL: http://client.test/auth)
+OAUTH2_CLIENT_ID=your_client_id
+OAUTH2_CLIENT_SECRET=your_client_secret
+
+## OAuth2 Server Endpoints
+OAUTH2_AUTHORIZE_URL=http://users.test/oauth/authorize
+OAUTH2_TOKEN_URL=http://users.test/oauth/token
+OAUTH2_USER_URL=http://users.test/api/user
+```
+
+- Ensure client.test matches your local development URL
+- Replace users.test with your OAuth2 server domain
+- Get credentials from your OAuth2 server administrator
+- Callback URL must match the one registered in OAuth2 server
+
+By default, this app uses SQLite as the database. You can customize it to use MySQL by updating the `.env` file as shown below:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=your_database
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
+```
+
+Run the following command to generate the application key:
 
 ```bash
-APP_NAME=OAuth2 Client
-APP_URL=<http://client.test>
+php artisan key:generate
 ```
 
-After making these changes, remember to:
+### Set Up the Database
 
-Clear the configuration cache:
+Run migrations to create the database tables: If the project includes seeders, run:
 
 ```bash
-php artisan config:clear
+php artisan migrate
 ```
 
-Rebuild the configuration cache:
+## Issues and Fixes
+
+### 400 Bad Request
+
+```
+Client error: `POST http://users.test/oauth/token` resulted in a `400 Bad Request` response: {"error":"invalid_request","error_description":"The request is missing a required parameter, includes an invalid paramet (truncated...) 
+```
+
+This issue is due to an ***wrong client id/secret*** or  ***improper configuration of the OAuth2 server (`users.test`)***. You need to regenerate the server. Run the following command on the OAuth2 server (`users.test`):
 
 ```bash
-php artisan config:cache
+php artisan key:generate
+php artisan passport:keys --force
+php artisan migrate:refresh
+php artisan db:seed
 ```
 
-These settings will be used throughout your Laravel 11 application for generating URLs and displaying the application name.
-
-## Install Bootstrap
-
-For simplicity we will use bootstrap, let us Install Bootstrap via npm:
+After this steps, you need to regenerate the client_id & client_secret and run below commands in client.test
 
 ```bash
-npm install bootstrap @popperjs/core
-```
-
-Update resources/css/app.css:
-
-```css
-@import 'bootstrap/dist/css/bootstrap.min.css';
-```
-
-Update resources/js/app.js:
-
-```js
-import './bootstrap';
-import 'bootstrap';
-```
-
-**Update templates:**
-
-***File: /resources/views/layouts/app.blade.php***
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ config('app.name') }}</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-            <a class="navbar-brand" href="#">{{ config('app.name') }}</a>
-        </div>
-    </nav>
-
-    <main class="container py-4">
-        @yield('content')
-    </main>
-</body>
-</html>
-```
-
-***File: /resources/views/home.blade.php***
-
-```html
-@extends('layouts.app')
-
-@section('content')
-    <main class="container py-4">
-        <h1>Welcome to {{ config('app.name') }}</h1>
-    </main>
-@endsection
-```
-
-**Update the route**
-
-***File: routes/web.php***
-
-change `return view('welcome')` -> `return view('home')`
-
-```php
-Route::get('/', function () {
-    return view('home');
-});
-```
-
-**Finally build and install bootstrap:**
-
-```bash
-npm run build
-```
-
-## Install Laravel Socialite
-
-```bash
-composer require laravel/socialite
-```
-
-
-Configure Socialite in client.test:
-
-In your client.test app, configure Socialite to use your users.test OAuth2 server.
-
-Update config/services.php:
-
-```php
-'users' => [
-    'client_id' => env('USERS_CLIENT_ID'),
-    'client_secret' => env('USERS_CLIENT_SECRET'),
-    'redirect' => env('USERS_REDIRECT_URI'),
-    'authorize_url' => 'http://users.test/oauth/authorize',
-    'token_url' => 'http://users.test/oauth/token',
-    'user_url' => 'http://users.test/api/user',
-],
-```
-
-## Clear Cache 
-
-```bash
-# Clear all Laravel caches
-php artisan cache:clear ; php artisan config:clear ; php artisan route:clear
-
-php artisan view:clear
-
-# Verify .env values
-php artisan tinker
-echo config('services.users.client_id');
-
-# Optional: Rebuild config cache
-php artisan config:cache
-
-# Restart Laravel development server if running
-php artisan serve
-```
-
-## Debugging  
-
-Run the (Laravel Tinker) php artisan tinker
-
-```bash
-$ php artisan tinker
-Psy Shell v0.12.7 (PHP 8.2.27 — cli) by Justin Hileman
->
-> dd(config('services.users'));
-array:6 [
-  "client_id" => "9e1d5e0c-35d6-43f7-8a7c-d2157f6de505"
-  "client_secret" => "MDhKvvySJMjZWdlwhtEm5ryMQv33fWlHDsmqFMjo"
-  "redirect" => "http://client.test/auth"
-  "authorize_url" => "http://users.test/oauth/authorize"
-  "token_url" => "http://users.test/oauth/token"
-  "user_url" => "http://users.test/api/user"
-]
+php artisan cache:clear ; php artisan config:cache ; php artisan config:cache
 ```
